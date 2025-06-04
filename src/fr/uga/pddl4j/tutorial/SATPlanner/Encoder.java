@@ -1,62 +1,80 @@
 package fr.uga.pddl4j.tutorial.SATPlanner;
 
+import org.sat4j.minisat.SolverFactory;
+import org.sat4j.specs.ISolver;
+import org.sat4j.specs.ContradictionException;
+import org.sat4j.core.VecInt;
+
 import java.util.*;
 
 public class Encoder {
-    private int varCounter = 1;
-    private final Map<String, Integer> varMap = new HashMap<>();
 
-    public int getOrCreateVar(String name) {
+    private final Map<String, Integer> varMap = new HashMap<>();
+    private int varCounter = 1;
+    private ISolver solver;
+
+    public ISolver getSolver() {
+        return this.solver;
+    }
+
+    public Map<String, Integer> getVarMap() {
+        return varMap;
+    }
+
+    private int getOrCreateVar(String name) {
         return varMap.computeIfAbsent(name, k -> varCounter++);
     }
 
-    public List<CNFClause> encode(int horizon) {
-        List<CNFClause> clauses = new ArrayList<>();
+    public void encode(int horizon) throws ContradictionException {
+        solver = SolverFactory.newDefault();
+        solver.setTimeout(3600); // 1h timeout
 
-        // Exemple simple : le robot commence en R1, doit aller en R2 à l'horizon <= 3
-        // Actions : move(R1, R2), move(R2, R1)
+        // Contrainte de position unique à chaque instant
         for (int t = 0; t <= horizon; t++) {
             int atR1 = getOrCreateVar("at(R1,t" + t + ")");
             int atR2 = getOrCreateVar("at(R2,t" + t + ")");
-            clauses.add(new CNFClause(atR1, atR2)); // le robot est quelque part
-            clauses.add(new CNFClause(-atR1, -atR2)); // pas dans les deux
+
+            // au moins une position
+            solver.addClause(new VecInt(new int[]{atR1, atR2}));
+            // pas deux à la fois
+            solver.addClause(new VecInt(new int[]{-atR1, -atR2}));
         }
 
+        // Actions, effets et persistance
         for (int t = 0; t < horizon; t++) {
             int moveR1R2 = getOrCreateVar("move(R1,R2,t" + t + ")");
             int moveR2R1 = getOrCreateVar("move(R2,R1,t" + t + ")");
 
             int atR1_t = getOrCreateVar("at(R1,t" + t + ")");
             int atR2_t = getOrCreateVar("at(R2,t" + t + ")");
-            int atR2_tp1 = getOrCreateVar("at(R2,t" + (t+1) + ")");
-            int atR1_tp1 = getOrCreateVar("at(R1,t" + (t+1) + ")");
+            int atR1_tp1 = getOrCreateVar("at(R1,t" + (t + 1) + ")");
+            int atR2_tp1 = getOrCreateVar("at(R2,t" + (t + 1) + ")");
 
-            // Précondition : pour faire move(R1,R2), il faut être à R1
-            clauses.add(new CNFClause(-moveR1R2, atR1_t));
-            clauses.add(new CNFClause(-moveR2R1, atR2_t));
+            // préconditions
+            solver.addClause(new VecInt(new int[]{-moveR1R2, atR1_t}));
+            solver.addClause(new VecInt(new int[]{-moveR2R1, atR2_t}));
 
-            // Effets
-            clauses.add(new CNFClause(-moveR1R2, atR2_tp1)); // si move, alors à R2
-            clauses.add(new CNFClause(-moveR2R1, atR1_tp1));
+            // effets
+            solver.addClause(new VecInt(new int[]{-moveR1R2, atR2_tp1}));
+            solver.addClause(new VecInt(new int[]{-moveR2R1, atR1_tp1}));
 
-            // Persistance : pas de move -> état inchangé
+            // exclusion mutuelle des actions
+            solver.addClause(new VecInt(new int[]{-moveR1R2, -moveR2R1}));
+
+            // persistance (frame axioms)
+            solver.addClause(new VecInt(new int[]{-atR1_tp1, atR1_t, moveR2R1}));
+            solver.addClause(new VecInt(new int[]{-atR2_tp1, atR2_t, moveR1R2}));
         }
 
-        // État initial : robot en R1
-        clauses.add(new CNFClause(getOrCreateVar("at(R1,t0)")));
-        clauses.add(new CNFClause(-getOrCreateVar("at(R2,t0)")));
+        // état initial : R1
+        solver.addClause(new VecInt(new int[]{getOrCreateVar("at(R1,t0)")}));
+        solver.addClause(new VecInt(new int[]{-getOrCreateVar("at(R2,t0)")})); // pas à R2
 
-        // Objectif : robot en R2 à t<=horizon
-        List<Integer> goal = new ArrayList<>();
+        // objectif : être à R2 à un moment
+        int[] goal = new int[horizon + 1];
         for (int t = 0; t <= horizon; t++) {
-            goal.add(getOrCreateVar("at(R2,t" + t + ")"));
+            goal[t] = getOrCreateVar("at(R2,t" + t + ")");
         }
-        clauses.add(new CNFClause(goal.toArray(new Integer[0])));
-
-        return clauses;
-    }
-
-    public Map<String, Integer> getVarMap() {
-        return varMap;
+        solver.addClause(new VecInt(goal));
     }
 }

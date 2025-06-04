@@ -1,42 +1,63 @@
 package fr.uga.pddl4j.tutorial.SATPlanner;
 
-import org.sat4j.minisat.SolverFactory;
-import org.sat4j.specs.*;
+import org.sat4j.specs.ISolver;
 
 import java.util.*;
 
 public class SATPlanner {
 
-    public static void main(String[] args) throws ContradictionException, TimeoutException {
-        int horizon = 3;
-
-        Encoder encoder = new Encoder();
-        List<CNFClause> clauses = encoder.encode(horizon);
-
-        ISolver solver = SolverFactory.newDefault();
-        solver.newVar(1000); // nombre max de variables
-        solver.setExpectedNumberOfClauses(clauses.size());
-
-        for (CNFClause clause : clauses) {
-            int[] lits = clause.getLiterals().stream().mapToInt(i -> i).toArray();
-            solver.addClause(new VecInt(lits));
+    public static void main(String[] args) {
+        if (args.length != 2) {
+            System.err.println("Usage: SATPlanner <domain.pddl> <problem.pddl>");
+            return;
         }
 
-        if (solver.isSatisfiable()) {
-            int[] model = solver.model();
-            Map<Integer, String> invVarMap = new HashMap<>();
-            encoder.getVarMap().forEach((k, v) -> invVarMap.put(v, k));
+        int horizon = 5; // horizon plus grand pour chercher plan plus long
+        Encoder encoder = new Encoder();
 
-            System.out.println("Plan trouvé :");
-            Arrays.stream(model)
-                    .filter(i -> i > 0)
-                    .mapToObj(invVarMap::get)
-                    .filter(name -> name.startsWith("move"))
-                    .sorted()
-                    .forEach(System.out::println);
-        } else {
-            System.out.println("Aucun plan trouvé jusqu'à l'horizon " + horizon);
+        try {
+            encoder.encode(horizon);
+            ISolver solver = encoder.getSolver();
+
+            Map<String, Integer> varMap = encoder.getVarMap();
+            Map<Integer, String> invMap = new HashMap<>();
+            varMap.forEach((k, v) -> invMap.put(v, k));
+
+            if (solver.isSatisfiable()) {
+                System.out.println("\nPlan trouvé :");
+                int[] model = solver.model();
+
+                List<String> plan = new ArrayList<>();
+
+                for (int var : model) {
+                    if (var > 0) {
+                        String prop = invMap.get(var);
+                        System.out.println("SAT var: " + prop);  // Affichage debug
+                        if (prop != null && prop.contains("move")) {
+                            plan.add(prop);
+                        }
+                    }
+                }
+
+                plan.sort(Comparator.comparingInt(SATPlanner::extractTime));
+                for (String action : plan) {
+                    System.out.println(action);
+                }
+            } else {
+                System.out.println("Aucun plan trouvé.");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static int extractTime(String action) {
+        try {
+            int idx = action.lastIndexOf("t");
+            return Integer.parseInt(action.substring(idx + 1));
+        } catch (Exception e) {
+            return Integer.MAX_VALUE;
         }
     }
 }
-

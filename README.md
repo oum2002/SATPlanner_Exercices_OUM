@@ -15,7 +15,7 @@ Appliquer cette méthode à un cas simple de robot :
 
 Un robot doit se déplacer d’une pièce à une autre (de R1 à R2). Il peut exécuter des actions de type move(from, to) avec pour précondition qu’il se trouve dans la pièce from, et pour effet qu’il se retrouve dans to. Le but est de générer un plan valide atteignant l’état final souhaité.
 
-## ⚙️ Compilation
+## Compilation
 
 Ouvrez un terminal à la racine du projet et exécutez :
 

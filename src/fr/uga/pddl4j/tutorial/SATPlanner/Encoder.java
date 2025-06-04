@@ -7,6 +7,15 @@ import org.sat4j.core.VecInt;
 
 import java.util.*;
 
+/**
+ * Encoder est la classe qui transforme un problème de planification simple 
+ * en une formule SAT sous forme CNF. 
+ * Cette classe a été développée dans le cadre de mon projet personnel de planification avec PDDL4J.
+ * Elle modélise un robot qui doit se déplacer entre deux positions R1 et R2 dans un horizon donné.
+ * 
+ * Auteur: oumkalthoum mhamdi
+ * Date: 2025-06-04
+ */
 public class Encoder {
 
     private final Map<String, Integer> varMap = new HashMap<>();

@@ -4,6 +4,16 @@ import org.sat4j.specs.ISolver;
 
 import java.util.*;
 
+
+/**
+ * Classe principale du projet de planification SAT.
+ * Cette classe utilise l'encodeur pour générer la formule CNF,
+ * puis interroge le solveur SAT pour trouver un plan réalisable.
+ * 
+ * Auteur: Oumkalthoum Mhamdi
+ * Date: 2025-06-04
+ */
+
 public class SATPlanner {
 
     public static void main(String[] args) {

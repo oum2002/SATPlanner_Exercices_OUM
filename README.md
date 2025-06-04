@@ -23,10 +23,10 @@ Placez les fichiers JAR dans le dossier `lib/`.
 Ouvrez un terminal à la racine du projet et exécutez :
 
 ```bash
-javac -d classes -cp "lib/*" src/fr/uga/pddl4j/tutorial/satplanner/*.java
+javac -d classes -cp "lib/*" src/fr/uga/pddl4j/tutorial/SATPlanner/*.java
 ```
 ## Execution
 ```bash
-java -cp "classes:lib/*" fr.uga.pddl4j.tutorial.satplanner.SATPlanner pddl/domain.pddl pddl/problem.pddl
+java -cp "classes:lib/*" fr.uga.pddl4j.tutorial.SATPlanner.SATPlanner pddl/domain.pddl pddl/problem.pddl
 
 ```

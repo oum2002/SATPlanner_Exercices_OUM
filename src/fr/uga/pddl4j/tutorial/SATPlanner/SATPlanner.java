@@ -1,73 +1,73 @@
 package fr.uga.pddl4j.tutorial.SATPlanner;
 
-import org.sat4j.specs.ISolver;
+import org.sat4j.core.VecInt;
+import org.sat4j.minisat.SolverFactory;
+import org.sat4j.specs.*;
 
-import java.util.*;
-
-
-/**
- * Classe principale du projet de planification SAT.
- * Cette classe utilise l'encodeur pour générer la formule CNF,
- * puis interroge le solveur SAT pour trouver un plan réalisable.
- * 
- * Auteur: Oumkalthoum Mhamdi
- * Date: 2025-06-04
- */
+import java.util.HashMap;
+import java.util.Map;
 
 public class SATPlanner {
 
-    public static void main(String[] args) {
-        if (args.length != 2) {
-            System.err.println("Usage: SATPlanner <domain.pddl> <problem.pddl>");
-            return;
-        }
+    private final Encoder encoder;
+    private final ISolver solver;
 
-        int horizon = 5; // horizon plus grand pour chercher plan plus long
-        Encoder encoder = new Encoder();
+    // Map de la variable SAT vers l’action (indexée à partir de 1)
+    private final Map<Integer, String> varToAction;
 
-        try {
-            encoder.encode(horizon);
-            ISolver solver = encoder.getSolver();
+    public SATPlanner(String domainPath, String problemPath) throws Exception {
+        this.encoder = new Encoder(domainPath, problemPath);
+        this.solver = SolverFactory.newDefault();
+        solver.setTimeout(3600); // timeout 1h
 
-            Map<String, Integer> varMap = encoder.getVarMap();
-            Map<Integer, String> invMap = new HashMap<>();
-            varMap.forEach((k, v) -> invMap.put(v, k));
+        this.varToAction = new HashMap<>();
 
-            if (solver.isSatisfiable()) {
-                System.out.println("\nPlan trouvé :");
-                int[] model = solver.model();
+        this.encodeProblemToSAT();
+    }
 
-                List<String> plan = new ArrayList<>();
+    private void encodeProblemToSAT() throws ContradictionException {
+        int varIndex = 1;
+        for (var action : encoder.getProblem().getActions()) {
+            // On associe chaque action à une variable SAT
+            varToAction.put(varIndex, encoder.getProblem().toString(action));
 
-                for (int var : model) {
-                    if (var > 0) {
-                        String prop = invMap.get(var);
-                        System.out.println("SAT var: " + prop);  // Affichage debug
-                        if (prop != null && prop.contains("move")) {
-                            plan.add(prop);
-                        }
-                    }
-                }
+            // Exemple simplifié : on ajoute la clause (action_var)
+            // ce qui signifie que cette action est possible (en vrai, il faut plus complexe)
+            solver.addClause(new VecInt(new int[]{varIndex}));
 
-                plan.sort(Comparator.comparingInt(SATPlanner::extractTime));
-                for (String action : plan) {
-                    System.out.println(action);
-                }
-            } else {
-                System.out.println("Aucun plan trouvé.");
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
+            varIndex++;
         }
     }
 
-    private static int extractTime(String action) {
+    public void solve() {
         try {
-            int idx = action.lastIndexOf("t");
-            return Integer.parseInt(action.substring(idx + 1));
-        } catch (Exception e) {
-            return Integer.MAX_VALUE;
+            if (solver.isSatisfiable()) {
+                int[] model = solver.model();
+                System.out.println("Solution SAT trouvée :");
+                for (int var : model) {
+                    if (var > 0) {  // variable vraie
+                        String actionName = varToAction.get(var);
+                        if (actionName != null) {
+                            System.out.println(" - " + actionName);
+                        }
+                    }
+                }
+            } else {
+                System.out.println("Problème insatisfaisable.");
+            }
+        } catch (TimeoutException e) {
+            System.err.println("Timeout du solveur SAT.");
         }
+    }
+
+
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.err.println("Usage: java SatPlanner <domain-file> <problem-file>");
+            System.exit(1);
+        }
+
+        SATPlanner planner = new SATPlanner(args[0], args[1]);
+        planner.solve();
     }
 }

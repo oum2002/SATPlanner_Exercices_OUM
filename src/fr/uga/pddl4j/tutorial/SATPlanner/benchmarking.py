@@ -13,7 +13,7 @@ problems_dir = "/workspaces/SATPlanner_Exercices_OUM/pddl"
 problem_files = ["p01.pddl", "p02.pddl", "p03.pddl"]  # ajoute autant que tu veux
 
 sat_command = "java -cp 'classes:lib/*' fr.uga.pddl4j.tutorial.SATPlanner.SATPlanner"
-hsp_command = "java -cp 'lib/*' fr.uga.pddl4j.planners.STRIPSPlanner"
+hsp_command = "java -cp lib/pddl4j-4.0.0.jar fr.uga.pddl4j.planners.statespace.HSP"
 
 results = []
 

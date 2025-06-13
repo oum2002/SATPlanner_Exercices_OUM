@@ -24,6 +24,6 @@ javac -d classes -cp "lib/*" src/fr/uga/pddl4j/tutorial/SATPlanner/*.java
 ```
 ## Execution
 ```bash
-java -cp "classes:lib/*" fr.uga.pddl4j.tutorial.SATPlanner.SATPlanner pddl/domain.pddl pddl/problem.pddl
+java -cp "classes:lib/*" fr.uga.pddl4j.tutorial.SATPlanner.SATPlanner pddl/domain.pddl pddl/p01.pddl
 
 ```
